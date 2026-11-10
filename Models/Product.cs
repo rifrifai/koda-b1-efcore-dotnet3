@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 namespace API.Models;
 public sealed class Product(string productCode, string name, decimal price, int stock, string category, string? description, bool isActive = true)
 {
-	// public Guid ProductID { get; }
-	public string ProductCode { get; private set; } = productCode;
-	public string Name { get; private set; } = name;
+	public string ProductCode { get; private set; } = productCode.Trim().ToUpperInvariant();
+	public string Name { get; private set; } = name.Trim();
 	public decimal Price { get; private set; } = price;
 	public int Stock { get; private set; } = stock;
-	public string Category { get; private set; } = category;
+	public string Category { get; private set; } = category.Trim();
 	public string? Description { get; private set; } = description;
 	public bool IsActive { get; private set; } = isActive;
+	public ICollection<OrderItem> OrderItems { get; private set; } = [];
 	public DateTime? DeactivatedAtUtc { get; set; } = isActive ? null : DateTime.UtcNow;
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 	public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

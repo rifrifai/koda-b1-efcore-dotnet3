@@ -9,11 +9,14 @@ namespace API.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        // Product
         modelBuilder.Entity<Product>(entity =>
         {
             entity.ToTable("Product", "dbo", table =>
@@ -42,6 +45,48 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasMaxLength(500);
             entity.Property(p => p.IsActive)
                 .IsRequired();
+        });
+        // Order
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.ToTable("Order", "dbo", table =>
+                table.HasCheckConstraint("CK_Orders_Status", "[Status] in ('Pending', 'Confirmed')")
+            );
+            entity.HasKey(o => o.OrderId);
+            entity.Property(o => o.OrderId).ValueGeneratedOnAdd();
+            entity.Property(o => o.OrderNumber).HasMaxLength(35).IsRequired();
+            entity.Property(o => o.OrderDate).HasColumnType("datetimeoffset").IsRequired();
+            entity.Property(o => o.Status).HasMaxLength(20).IsRequired();
+            entity.HasIndex(o => o.OrderDate);
+        });
+
+        // OrderItem
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.ToTable("OrderItem", "dbo", table =>
+            {
+                table.HasCheckConstraint("CK_OrderItem_Quantity", "[Quantity] > 0");
+                table.HasCheckConstraint("CK_OrderItem_UnitPrice", "[UnitPrice] >= 0");
+            });
+            entity.HasKey(i => i.OrderItemId);
+            entity.Property(i => i.OrderItemId).ValueGeneratedOnAdd();
+            entity.Property(i => i.ProductCode).HasMaxLength(30).IsRequired();
+            entity.Property(i => i.Quantity).IsRequired();
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2).IsRequired();
+            entity.Property(i => i.SubTotal).HasComputedColumnSql("[Quantity] * [UnitPrice]", stored: true);
+
+            entity.HasOne(i => i.Order)
+                .WithMany(o => o.Items)
+                .HasForeignKey(i => i.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(i => i.Product)
+                .WithMany(p => p.OrderItems)
+                .HasForeignKey(i => i.ProductCode)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(i => new { i.OrderId, i.ProductCode }).IsUnique();
+            entity.HasIndex(i => i.ProductCode);
         });
     }
 }
