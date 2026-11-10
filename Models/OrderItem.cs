@@ -1,7 +1,7 @@
 namespace API.Models;
 public sealed class OrderItem
 {
-    // private OrderItrem() {}
+    private OrderItem() {  }
     public long OrderItemId { get; private set; }
 
     public long OrderId { get; private set; }

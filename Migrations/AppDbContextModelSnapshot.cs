@@ -22,6 +22,80 @@ namespace API.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("API.Models.Order", b =>
+                {
+                    b.Property<long>("OrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("OrderId"));
+
+                    b.Property<DateTimeOffset>("OrderDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("OrderId");
+
+                    b.HasIndex("OrderDate");
+
+                    b.ToTable("Order", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_Orders_Status", "[Status] in ('Pending', 'Confirmed')");
+                        });
+                });
+
+            modelBuilder.Entity("API.Models.OrderItem", b =>
+                {
+                    b.Property<long>("OrderItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("OrderItemId"));
+
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("decimal(18,2)")
+                        .HasComputedColumnSql("[Quantity] * [UnitPrice]", true);
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("OrderItemId");
+
+                    b.HasIndex("ProductCode");
+
+                    b.HasIndex("OrderId", "ProductCode")
+                        .IsUnique();
+
+                    b.ToTable("OrderItem", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderItem_Quantity", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_OrderItem_UnitPrice", "[UnitPrice] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("API.Models.Product", b =>
                 {
                     b.Property<string>("ProductCode")
@@ -69,6 +143,35 @@ namespace API.Migrations
 
                             t.HasCheckConstraint("CK_Product_Stock", "[Stock] >= 0");
                         });
+                });
+
+            modelBuilder.Entity("API.Models.OrderItem", b =>
+                {
+                    b.HasOne("API.Models.Order", "Order")
+                        .WithMany("Items")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("API.Models.Product", "Product")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("ProductCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("API.Models.Order", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("API.Models.Product", b =>
+                {
+                    b.Navigation("OrderItems");
                 });
 #pragma warning restore 612, 618
         }
